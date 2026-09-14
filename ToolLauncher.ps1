@@ -108,6 +108,13 @@ $removeButton.Size = New-Object System.Drawing.Size(110, 34)
 $removeButton.Anchor = 'Bottom,Left'
 $form.Controls.Add($removeButton)
 
+$openFolderButton = New-Object System.Windows.Forms.Button
+$openFolderButton.Text = '打开工具文件夹'
+$openFolderButton.Location = New-Object System.Drawing.Point(404, 412)
+$openFolderButton.Size = New-Object System.Drawing.Size(140, 34)
+$openFolderButton.Anchor = 'Bottom,Left'
+$form.Controls.Add($openFolderButton)
+
 $refreshButton = New-Object System.Windows.Forms.Button
 $refreshButton.Text = '刷新'
 $refreshButton.Location = New-Object System.Drawing.Point(598, 412)
@@ -145,15 +152,22 @@ function Run-SelectedTool {
         return
     }
     try {
-        # Run the batch through a hidden cmd.exe instance, rather than using
-        # the visible default .bat file association.
-        $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
-        $startInfo.FileName = $env:ComSpec
-        $startInfo.Arguments = '/d /s /c ""' + $tool.Path + '""'
-        $startInfo.WorkingDirectory = [System.IO.Path]::GetDirectoryName($tool.Path)
-        $startInfo.UseShellExecute = $false
-        $startInfo.CreateNoWindow = $true
-        [void][System.Diagnostics.Process]::Start($startInfo)
+        # A batch file with PAUSE is designed to show its progress/results in
+        # a console. Launch that kind normally; keep other tools hidden.
+        $batchText = Get-Content -LiteralPath $tool.Path -Raw -ErrorAction Stop
+        $requiresConsole = $batchText -match '(?im)^\s*pause\b'
+        if ($requiresConsole) {
+            Start-Process -FilePath $tool.Path
+        }
+        else {
+            $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+            $startInfo.FileName = $env:ComSpec
+            $startInfo.Arguments = '/d /s /c ""' + $tool.Path + '""'
+            $startInfo.WorkingDirectory = [System.IO.Path]::GetDirectoryName($tool.Path)
+            $startInfo.UseShellExecute = $false
+            $startInfo.CreateNoWindow = $true
+            [void][System.Diagnostics.Process]::Start($startInfo)
+        }
         $form.Close()
     }
     catch {
@@ -161,8 +175,30 @@ function Run-SelectedTool {
     }
 }
 
+function Open-SelectedToolFolder {
+    $tool = Get-SelectedTool
+    if ($null -eq $tool) {
+        [System.Windows.Forms.MessageBox]::Show('请先选择一个工具。', '脚本工具箱', 'OK', 'Information') | Out-Null
+        return
+    }
+
+    $folder = [System.IO.Path]::GetDirectoryName($tool.Path)
+    if ([string]::IsNullOrWhiteSpace($folder) -or -not (Test-Path -LiteralPath $folder -PathType Container)) {
+        [System.Windows.Forms.MessageBox]::Show("找不到工具所在文件夹：`r`n$folder", '脚本工具箱', 'OK', 'Warning') | Out-Null
+        return
+    }
+
+    try {
+        Start-Process -FilePath 'explorer.exe' -ArgumentList ('/select,"{0}"' -f $tool.Path)
+    }
+    catch {
+        [System.Windows.Forms.MessageBox]::Show("无法打开工具文件夹：`r`n$($_.Exception.Message)", '脚本工具箱', 'OK', 'Error') | Out-Null
+    }
+}
+
 $runButton.Add_Click({ Run-SelectedTool })
 $list.Add_DoubleClick({ Run-SelectedTool })
+$openFolderButton.Add_Click({ Open-SelectedToolFolder })
 
 $addButton.Add_Click({
     $dialog = New-Object System.Windows.Forms.OpenFileDialog
