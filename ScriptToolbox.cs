@@ -57,6 +57,10 @@ namespace ScriptToolbox
             tools = LoadTools();
 
             Text = "脚本工具箱";
+            using (var iconStream = typeof(ToolboxForm).Assembly.GetManifestResourceStream("ScriptToolbox.Icon"))
+            {
+                if (iconStream != null) Icon = new Icon(iconStream);
+            }
             StartPosition = FormStartPosition.CenterScreen;
             Size = new Size(860, 520);
             MinimumSize = new Size(760, 400);

@@ -1,2 +1,3 @@
 # Per-machine launcher choices. Contains absolute local paths.
 ToolLauncher.tools.json
+build/
