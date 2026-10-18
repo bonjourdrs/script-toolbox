@@ -44,3 +44,7 @@ launcher to replace the bundled executable. Close the launcher before replacing 
 No separate icon file is required to run the executable.
 
 The source is provided so the bundled executable can be rebuilt and audited locally.
+
+---
+
+_Last updated: 2026-10-18_
