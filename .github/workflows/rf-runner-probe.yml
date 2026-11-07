@@ -1,0 +1,31 @@
+name: Resource Finder GitHub-hosted runner probe
+on:
+  push:
+    branches:
+      - rf-actions-probe-20261107
+    paths:
+      - .github/workflows/rf-runner-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runner-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Print runner environment
+        shell: bash
+        run: |
+          echo "PROBE_OK"
+          echo "repository=${GITHUB_REPOSITORY}"
+          echo "runner_os=${RUNNER_OS}"
+          echo "commit=${GITHUB_SHA}"
+          printf 'PROBE_OK\n' > runner-probe.txt
+      - name: Upload minimal probe result
+        uses: actions/upload-artifact@v4
+        with:
+          name: rf-runner-probe
+          path: runner-probe.txt
+          retention-days: 1
